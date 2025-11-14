@@ -1,0 +1,19 @@
+{% extends 'base.html'%}
+
+{% block content%}
+
+
+<form method = 'post' action = 'post_blog' enctype='multipart/form-data'><br><br><br><br>
+    {% csrf_token %}
+    <label>title</label>
+    <input type = 'text' id = 'title' name = 'title'><br><br>
+    <label>date</label>
+    <input type = 'text' id = 'date' name = 'date'><br><br>
+    <label>desciption</label>
+    <input type = 'text' id = 'desciption' name = 'description'><br><br>
+    <label>Choose File</label>
+    <input type = 'file' id = 'img' name = 'img'><br><br>
+    <button type = 'submit'>Submit</button>
+</form>
+
+{%endblock%}
