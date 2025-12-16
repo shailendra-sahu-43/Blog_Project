@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Django
+db.sqlite3
+media/
+staticfiles/
+
+# Env
+.env
+venv/
+
+# OS
+.DS_Store
+
+# Backup files
+*.save
+*.save.*
