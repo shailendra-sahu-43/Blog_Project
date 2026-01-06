@@ -23,12 +23,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-k(hy49rhn5hiva(vf$2u&yfaefxai1h6=(p4a@9-h7#&ix(*f3'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = [
     'trenzo.shop',
     'www.trenzo.shop',
-    '13.48.190.191'
+    '13.60.254.255'
+#'*',
 ]
 
 # Application definition
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'ecommerceapp',
+    'storages',
 ]
 
 MIDDLEWARE = [
@@ -55,6 +57,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'ecom.urls'
+
 
 TEMPLATES = [
     {
@@ -98,7 +101,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
     },
-    {
+{
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
@@ -118,18 +121,44 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
-STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'FILE'
-
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
-    BASE_DIR / 'ecommerceapp' / 'static',
+    BASE_DIR / "ecommerceapp" / "static",
 ]
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
 LOGIN_URL = '/login/'
+
+
+AWS_STORAGE_BUCKET_NAME = "my-django-project-bucket-static"
+AWS_S3_REGION_NAME = "eu-north-1"
+
+AWS_S3_CUSTOM_DOMAIN = "media.trenzo.shop"
+
+AWS_QUERYSTRING_AUTH = False
+AWS_DEFAULT_ACL = None
+AWS_S3_OBJECT_PARAMETERS = {
+    "CacheControl": "max-age=31536000, public",
+}
+
+# STATIC FILES
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "location": "media",
+        },
+    },
+    "staticfiles": {
+        "BACKEND": "storages.backends.s3boto3.S3StaticStorage",
+        "OPTIONS": {
+            "location": "static",
+        },
+    },
+}
+
+MEDIA_URL = "https://media.trenzo.shop/media/"
+STATIC_URL = "https://media.trenzo.shop/static/"
+
+
