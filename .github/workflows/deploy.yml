@@ -1,0 +1,57 @@
+name: Deploy Django to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1️⃣ Repo checkout
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2️⃣ Setup SSH using EC2_SSH_KEY
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+    # 3️⃣ Deploy to EC2
+    - name: Deploy to EC2
+      run: |
+        ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+        set -e
+
+        cd /home/ubuntu/mydjangoproject/Blog_Project
+
+        echo "🔄 Pulling latest code"
+        git pull origin main
+
+        echo "🐍 Activating virtualenv"
+        source /home/ubuntu/mydjangoproject/venv/bin/activate
+
+        echo "📦 Installing dependencies"
+        pip install -r requirements.txt
+
+        echo "🔐 Exporting env variables"
+        export DJANGO_SECRET_KEY="${{ secrets.DJANGO_SECRET_KEY }}"
+        export AWS_REGION="${{ secrets.AWS_REGION }}"
+
+        echo "🗄️ Running migrations"
+        python manage.py migrate --noinput
+
+        echo "🎨 Collecting static files"
+        python manage.py collectstatic --noinput
+
+        echo "🚀 Restarting services"
+        sudo systemctl restart gunicorn
+        sudo systemctl restart nginx
+
+        echo "✅ Deployment finished"
+        EOF
