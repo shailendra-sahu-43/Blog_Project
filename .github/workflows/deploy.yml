@@ -10,11 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1️⃣ Repo checkout
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 2️⃣ Setup SSH using EC2_SSH_KEY
     - name: Setup SSH
       run: |
         mkdir -p ~/.ssh
@@ -22,16 +20,17 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-    # 3️⃣ Deploy to EC2
     - name: Deploy to EC2
       run: |
-        ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+        ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
         set -e
+        set -x
 
         cd /home/ubuntu/mydjangoproject/Blog_Project
 
         echo "🔄 Pulling latest code"
-        git pull origin main
+        git fetch origin
+        git reset --hard origin/main
 
         echo "🐍 Activating virtualenv"
         source /home/ubuntu/mydjangoproject/venv/bin/activate
