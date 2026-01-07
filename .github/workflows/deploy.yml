@@ -49,8 +49,7 @@ jobs:
         python manage.py collectstatic --noinput
 
         echo "🚀 Restarting services"
-        sudo systemctl restart gunicorn
-        sudo systemctl restart nginx
+        sudo systemctl reload gunicorn
 
         echo "✅ Deployment finished"
         EOF
