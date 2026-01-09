@@ -28,7 +28,7 @@ DEBUG = False
 ALLOWED_HOSTS = [
     'trenzo.shop',
     'www.trenzo.shop',
-    '13.60.254.255'
+    '13.53.198.158'
 #'*',
 ]
 
