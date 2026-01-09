@@ -13,6 +13,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:                # 👈 YAHAN ADD KARO
+      ENVIRONMENT: ci   # 👈 important
+      USE_SQLITE: true  # 👈 optional but safe
+
     steps:
       - uses: actions/checkout@v4
 

@@ -90,7 +90,7 @@ import os
 from decouple import config
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "local")
-USE_SQLITE = os.environ.get("USE_SQLITE") == "true"
+USE_SQLITE = os.environ.get("USE_SQLITE", "false").lower() == "true"
 
 if ENVIRONMENT == "ci" or USE_SQLITE:
     DATABASES = {
