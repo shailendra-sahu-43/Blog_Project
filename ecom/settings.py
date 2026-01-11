@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'ecommerceapp',
     'storages',
+    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -184,5 +185,36 @@ STORAGES = {
 
 MEDIA_URL = "https://media.trenzo.shop/media/"
 STATIC_URL = "https://media.trenzo.shop/static/"
+
+#======================redis-server==================================
+#Redis host & port (TOP me)
+
+REDIS_HOST = "master.myproject-redis.gp9lgn.eun1.cache.amazonaws.com:6379"
+REDIS_PORT = 6379
+
+
+#Django CACHING with Redis
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+#Django SESSIONS in Redis
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+
+#Celery + Redis Broker (CRITICAL)
+CELERY_BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_BACKEND = "django-db"
+
+
 
 
