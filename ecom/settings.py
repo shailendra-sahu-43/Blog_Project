@@ -205,7 +205,7 @@ CACHES = {
         "LOCATION": f"rediss://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/1",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "SSL_CERT_REQS": "required",
+            "SSL_CERT_REQS": None,
         }
     }
 }
