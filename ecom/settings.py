@@ -239,28 +239,37 @@ SESSION_CACHE_ALIAS = "default"
 # Optional: Session timeout in seconds
 SESSION_COOKIE_AGE = 60 * 60 * 24  # 1 day
 
+# ===============================
 # Celery Config (Redis TLS Broker + Backend)
 # ===============================
-CELERY_BROKER_URL = f"rediss://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
-CELERY_RESULT_BACKEND = f"rediss://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
 
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
+
 CELERY_TIMEZONE = "Asia/Kolkata"
 CELERY_ENABLE_UTC = True
 
+# 🔴 IMPORTANT: ssl_cert_reqs MUST be in URL for rediss://
+CELERY_BROKER_URL = (
+    f"rediss://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
+    "?ssl_cert_reqs=CERT_REQUIRED"
+)
 
+CELERY_RESULT_BACKEND = (
+    f"rediss://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
+    "?ssl_cert_reqs=CERT_REQUIRED"
+)
+
+# Optional but recommended (CA verification)
 CELERY_BROKER_TRANSPORT_OPTIONS = {
-    "ssl_cert_reqs": "CERT_REQUIRED",  # Required for rediss://
-    "ssl_ca_certs": "/etc/ssl/certs/ca-certificates.crt",  # Path to CA cert
-    "visibility_timeout": 3600,  # 1 hour
+    "ssl_ca_certs": "/etc/ssl/certs/ca-certificates.crt",
+    "visibility_timeout": 3600,
     "socket_connect_timeout": 5,
     "socket_timeout": 5,
 }
 
 CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
-    "ssl_cert_reqs": "CERT_REQUIRED",
     "ssl_ca_certs": "/etc/ssl/certs/ca-certificates.crt",
     "socket_connect_timeout": 5,
     "socket_timeout": 5,
