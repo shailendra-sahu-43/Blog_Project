@@ -250,9 +250,18 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "Asia/Kolkata"
 CELERY_ENABLE_UTC = True
 
-# Optional: retries & heartbeat
+
 CELERY_BROKER_TRANSPORT_OPTIONS = {
+    "ssl_cert_reqs": "CERT_REQUIRED",  # Required for rediss://
+    "ssl_ca_certs": "/etc/ssl/certs/ca-certificates.crt",  # Path to CA cert
     "visibility_timeout": 3600,  # 1 hour
+    "socket_connect_timeout": 5,
+    "socket_timeout": 5,
+}
+
+CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
+    "ssl_cert_reqs": "CERT_REQUIRED",
+    "ssl_ca_certs": "/etc/ssl/certs/ca-certificates.crt",
     "socket_connect_timeout": 5,
     "socket_timeout": 5,
 }
