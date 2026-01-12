@@ -199,16 +199,40 @@ REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD")
 #         "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/1",
 #     }
 # }
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django_redis.cache.RedisCache",
+#         "LOCATION": f"rediss://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/1",
+#         "OPTIONS": {
+#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#             "SSL_CERT_REQS": None,
+#         }
+#     }
+# }
+
+
+import os
+
+REDIS_HOST = "master.myproject-redis.gp9lgn.eun1.cache.amazonaws.com"
+REDIS_PORT = 6379
+REDIS_PASSWORD = "Redis_Password$443398"
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"rediss://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/1",
+        "LOCATION": f"rediss://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "SSL_CERT_REQS": None,
+            "SSL_CERT_REQS": "required",
+            "SSL_CA_CERTS": "/etc/ssl/certs/ca-certificates.crt",
+            "SOCKET_CONNECT_TIMEOUT": 5,
+            "SOCKET_TIMEOUT": 5,
+            "SOCKET_KEEPALIVE": True,
+            "RETRY_ON_TIMEOUT": True,
         }
     }
 }
+
 
 CELERY_BROKER_URL = f"rediss://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
 
