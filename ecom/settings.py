@@ -188,31 +188,7 @@ STATIC_URL = "https://media.trenzo.shop/static/"
 
 #======================redis-server==================================
 #Redis host & port (TOP me)
-
-REDIS_HOST = "master.myproject-redis.gp9lgn.eun1.cache.amazonaws.com"
-REDIS_PORT = 6379
-REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD")
-
-# CACHES = {
-#     "default": {
-#         "BACKEND": "django_redis.cache.RedisCache",
-#         "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/1",
-#     }
-# }
-# CACHES = {
-#     "default": {
-#         "BACKEND": "django_redis.cache.RedisCache",
-#         "LOCATION": f"rediss://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/1",
-#         "OPTIONS": {
-#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-#             "SSL_CERT_REQS": None,
-#         }
-#     }
-# }
-
-
 import os
-
 REDIS_HOST = "master.myproject-redis.gp9lgn.eun1.cache.amazonaws.com"
 REDIS_PORT = 6379
 REDIS_PASSWORD = "Redis_Password$443398"
