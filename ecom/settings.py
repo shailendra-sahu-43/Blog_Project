@@ -240,7 +240,10 @@ SESSION_CACHE_ALIAS = "default"
 SESSION_COOKIE_AGE = 60 * 60 * 24  # 1 day
 
 # ===============================
-# Celery Config (Redis TLS Broker + Backend)
+# ===============================
+# Celery Configuration (PRODUCTION READY)
+# Redis TLS = Broker
+# DB = Result Backend
 # ===============================
 
 CELERY_ACCEPT_CONTENT = ["json"]
@@ -250,31 +253,20 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "Asia/Kolkata"
 CELERY_ENABLE_UTC = True
 
-# 🔴 IMPORTANT: ssl_cert_reqs MUST be in URL for rediss://
+
+# 🔹 Redis TLS Broker (AWS ElastiCache)
 CELERY_BROKER_URL = (
     f"rediss://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
     "?ssl_cert_reqs=CERT_REQUIRED"
 )
 
-CELERY_RESULT_BACKEND = (
-    f"rediss://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
-    "?ssl_cert_reqs=CERT_REQUIRED"
-)
-
-# Optional but recommended (CA verification)
 CELERY_BROKER_TRANSPORT_OPTIONS = {
     "ssl_ca_certs": "/etc/ssl/certs/ca-certificates.crt",
-    "visibility_timeout": 3600,
-    "socket_connect_timeout": 5,
-    "socket_timeout": 5,
-}
-
-CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
-    "ssl_ca_certs": "/etc/ssl/certs/ca-certificates.crt",
+    "visibility_timeout": 3600,       # 1 hour
     "socket_connect_timeout": 5,
     "socket_timeout": 5,
 }
 
 
-
-
+# 🔹 Result Backend (STABLE & SAFE)
+CELERY_RESULT_BACKEND = "django-db"
