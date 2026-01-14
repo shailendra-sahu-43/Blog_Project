@@ -23,30 +23,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-k(hy49rhn5hiva(vf$2u&yfaefxai1h6=(p4a@9-h7#&ix(*f3'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = False
-
-# ALLOWED_HOSTS = [
-#     'trenzo.shop',
-#     'www.trenzo.shop',
-#     '13.49.80.3'
-# #'*',
-# ]
-
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    "trenzo.shop",
-    "www.trenzo.shop"
+    'trenzo.shop',
+    'www.trenzo.shop',
+    '13.49.80.3'
+#'*',
 ]
-
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-USE_X_FORWARDED_HOST = True
-
-CSRF_TRUSTED_ORIGINS = [
-    "https://trenzo.shop",
-    "https://trenzo.shop"
-]
-
 
 # Application definition
 
