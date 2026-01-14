@@ -43,7 +43,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'ecommerceapp',
     'storages',
-    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -188,61 +187,72 @@ STATIC_URL = "https://media.trenzo.shop/static/"
 
 #======================redis-server==================================
 #Redis host & port (TOP me)
-import os
-REDIS_HOST = "master.myproject-redis.gp9lgn.eun1.cache.amazonaws.com"
-REDIS_PORT = 6379
-REDIS_PASSWORD = "Redis_Password$443398"
+# import os
+# REDIS_HOST = "master.myproject-redis.gp9lgn.eun1.cache.amazonaws.com"
+# REDIS_PORT = 6379
+# REDIS_PASSWORD = "Redis_Password$443398"
 
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django_redis.cache.RedisCache",
+#         "LOCATION": f"rediss://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0",
+#         "OPTIONS": {
+#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#             "SSL_CERT_REQS": "required",
+#             "SSL_CA_CERTS": "/etc/ssl/certs/ca-certificates.crt",
+#             "SOCKET_CONNECT_TIMEOUT": 5,
+#             "SOCKET_TIMEOUT": 5,
+#             "SOCKET_KEEPALIVE": True,
+#             "RETRY_ON_TIMEOUT": True,
+#         }
+#     }
+# }
+
+# SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+# SESSION_CACHE_ALIAS = "default"
+
+# # Optional: Session timeout in seconds
+# SESSION_COOKIE_AGE = 60 * 60 * 24  # 1 day
+
+# # ===============================
+# # ===============================
+# # Celery Configuration (PRODUCTION READY)
+# # Redis TLS = Broker
+# # DB = Result Backend
+# # ===============================
+
+# CELERY_ACCEPT_CONTENT = ["json"]
+# CELERY_TASK_SERIALIZER = "json"
+# CELERY_RESULT_SERIALIZER = "json"
+
+# CELERY_TIMEZONE = "Asia/Kolkata"
+# CELERY_ENABLE_UTC = True
+
+
+# # 🔹 Redis TLS Broker (AWS ElastiCache)
+# CELERY_BROKER_URL = (
+#     f"rediss://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
+#     "?ssl_cert_reqs=CERT_REQUIRED"
+# )
+
+# CELERY_BROKER_TRANSPORT_OPTIONS = {
+#     "ssl_ca_certs": "/etc/ssl/certs/ca-certificates.crt",
+#     "visibility_timeout": 3600,       # 1 hour
+#     "socket_connect_timeout": 5,
+#     "socket_timeout": 5,
+# }
+
+
+# # 🔹 Result Backend (STABLE & SAFE)
+# CELERY_RESULT_BACKEND = "django-db"
+
+
+
+# temparery usign local caching ---------------------------
 CACHES = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"rediss://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "SSL_CERT_REQS": "required",
-            "SSL_CA_CERTS": "/etc/ssl/certs/ca-certificates.crt",
-            "SOCKET_CONNECT_TIMEOUT": 5,
-            "SOCKET_TIMEOUT": 5,
-            "SOCKET_KEEPALIVE": True,
-            "RETRY_ON_TIMEOUT": True,
-        }
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
     }
 }
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-SESSION_CACHE_ALIAS = "default"
-
-# Optional: Session timeout in seconds
-SESSION_COOKIE_AGE = 60 * 60 * 24  # 1 day
-
-# ===============================
-# ===============================
-# Celery Configuration (PRODUCTION READY)
-# Redis TLS = Broker
-# DB = Result Backend
-# ===============================
-
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-
-CELERY_TIMEZONE = "Asia/Kolkata"
-CELERY_ENABLE_UTC = True
-
-
-# 🔹 Redis TLS Broker (AWS ElastiCache)
-CELERY_BROKER_URL = (
-    f"rediss://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
-    "?ssl_cert_reqs=CERT_REQUIRED"
-)
-
-CELERY_BROKER_TRANSPORT_OPTIONS = {
-    "ssl_ca_certs": "/etc/ssl/certs/ca-certificates.crt",
-    "visibility_timeout": 3600,       # 1 hour
-    "socket_connect_timeout": 5,
-    "socket_timeout": 5,
-}
-
-
-# 🔹 Result Backend (STABLE & SAFE)
-CELERY_RESULT_BACKEND = "django-db"
