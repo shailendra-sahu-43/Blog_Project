@@ -61,3 +61,11 @@ def register_view(request):
         form = RegisterForm()
     return render(request, 'registration/register.html', {'form': form})
 
+
+# this is the alb settings 
+from django.http import HttpResponse
+
+def health(request):
+    return HttpResponse("ok", status=200)
+
+
