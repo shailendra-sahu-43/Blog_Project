@@ -32,15 +32,11 @@ SECRET_KEY = 'django-insecure-k(hy49rhn5hiva(vf$2u&yfaefxai1h6=(p4a@9-h7#&ix(*f3
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-# ALLOWED_HOSTS = [
-#     'trenzo.shop',
-#     'www.trenzo.shop',
-#     '13.49.80.3'
-# #'*',
-# ]
-
-ALLOWED_HOSTS = ['*']
-
+ALLOWED_HOSTS = [
+    'django-alb-221705123.eu-north-1.elb.amazonaws.com',
+    'trenzo.shop',
+    'www.trenzo.shop',
+]
 
 # Application definition
 
