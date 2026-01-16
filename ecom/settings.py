@@ -30,6 +30,8 @@ ALLOWED_HOSTS = [
     'django-alb-221705123.eu-north-1.elb.amazonaws.com',
     'trenzo.shop',
     'www.trenzo.shop',
+    '127.0.0.1',
+    'localhost',
 ]
 
 #this is the alb settings -----------
