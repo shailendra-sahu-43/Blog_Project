@@ -1,4 +1,4 @@
-name: Deploy Django to EC2
+name: Zero Downtime Django Deploy (ASG)
 
 on:
   push:
@@ -16,41 +16,24 @@ jobs:
     - name: Setup SSH
       run: |
         mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        echo "${{'16.170.159.230'}}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H ${{ '16.170.159.230' }} >> ~/.ssh/known_hosts
 
-    - name: Deploy to EC2
+    - name: Build AMI
       run: |
-        ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
+        ssh ubuntu@${{ '16.170.159.230'}} << EOF
         set -e
-        set -x
 
         cd /home/ubuntu/mydjangoproject/Blog_Project
-
-        echo "🔄 Pulling latest code"
         git fetch origin
         git reset --hard origin/main
 
-        echo "🐍 Activating virtualenv"
         source /home/ubuntu/mydjangoproject/venv/bin/activate
-
-        echo "📦 Installing dependencies"
         pip install -r requirements.txt
-
-        echo "🔐 Exporting env variables"
-        export DJANGO_SECRET_KEY="${{ secrets.DJANGO_SECRET_KEY }}"
-        export AWS_REGION="${{ secrets.AWS_REGION }}"
-
-        echo "🗄️ Running migrations"
         python manage.py migrate --noinput
-
-        echo "🎨 Collecting static files"
         python manage.py collectstatic --noinput
-
-        echo "🚀 Restarting services"
         sudo systemctl restart gunicorn
-        sudo systemctl restart nginx
 
-        echo "✅ Deployment finished"
+        curl http://localhost/health/
         EOF
