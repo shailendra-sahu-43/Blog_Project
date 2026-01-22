@@ -16,13 +16,13 @@ jobs:
     - name: Setup SSH
       run: |
         mkdir -p ~/.ssh
-        echo "${{'16.170.159.230'}}" > ~/.ssh/id_rsa
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ '16.170.159.230' }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H ${{ secrets.AMI_BUILDER_IP }} >> ~/.ssh/known_hosts
 
     - name: Build AMI
       run: |
-        ssh ubuntu@${{ '16.170.159.230'}} << EOF
+        ssh ubuntu@${{ secrets.AMI_BUILDER_IP }} << EOF
         set -e
 
         cd /home/ubuntu/mydjangoproject/Blog_Project
