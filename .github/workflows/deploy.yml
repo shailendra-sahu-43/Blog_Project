@@ -10,52 +10,47 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1️⃣ Checkout the repository
-    - name: Checkout code
-      uses: actions/checkout@v4
+      # 1️⃣ Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    # 2️⃣ Setup SSH securely
-    - name: Setup SSH
-      shell: bash
-      run: |
-        set -e
-        mkdir -p "$HOME/.ssh"
-        echo "$EC2_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/id_rsa"
-        chmod 600 "$HOME/.ssh/id_rsa"
-        ssh-keyscan -H "$AMI_BUILDER_IP" >> "$HOME/.ssh/known_hosts"
-      env:
-        EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-        AMI_BUILDER_IP: ${{ secrets.AMI_BUILDER_IP }}
+      # 2️⃣ Setup SSH securely (handles multiline private key)
+      - name: Setup SSH
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.ssh"
+          echo "$EC2_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/id_rsa"
+          chmod 600 "$HOME/.ssh/id_rsa"
+          ssh-keyscan -H "$AMI_BUILDER_IP" >> "$HOME/.ssh/known_hosts"
+          ssh -o StrictHostKeyChecking=no ubuntu@$AMI_BUILDER_IP "echo connected"
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          AMI_BUILDER_IP: ${{ secrets.AMI_BUILDER_IP }}
 
-    # 3️⃣ Optional: Test SSH connection
-    - name: Test SSH connection
-      run: ssh -o StrictHostKeyChecking=no ubuntu@$AMI_BUILDER_IP "whoami"
-      env:
-        AMI_BUILDER_IP: ${{ secrets.AMI_BUILDER_IP }}
+      # 3️⃣ Deploy Docker Compose on EC2
+      - name: Deploy Docker Compose
+        shell: bash
+        run: |
+          ssh -o StrictHostKeyChecking=no ubuntu@$AMI_BUILDER_IP << 'EOF'
+          set -e
 
-    # 4️⃣ Deploy Docker containers on EC2
-    - name: Deploy Docker Compose on EC2
-      shell: bash
-      run: |
-        ssh ubuntu@$AMI_BUILDER_IP << 'EOF'
-        set -e
+          cd /home/ubuntu/mydjangoproject/Blog_Project
 
-        # Navigate to your project directory
-        cd /home/ubuntu/mydjangoproject/Blog_Project
+          # Pull latest code
+          git fetch origin
+          git reset --hard origin/main
 
-        # Pull latest code
-        git fetch origin
-        git reset --hard origin/main
+          # Stop existing containers gracefully
+          docker-compose down
 
-        # Stop existing containers gracefully
-        docker-compose down
+          # Build and start new containers
+          docker-compose up -d --build
 
-        # Build and start new containers
-        docker-compose up -d --build
+          # Wait for containers to start
+          sleep 10
 
-        # Wait a few seconds for containers to start
-        sleep 10
-
-        # Check health endpoint
-        curl -f http://localhost/health/ || exit 1
-        EOF
+          # Health check
+          curl -f http://localhost/health/ || exit 1
+          EOF
+        env:
+          AMI_BUILDER_IP: ${{ secrets.AMI_BUILDER_IP }}
