@@ -1,6 +1,4 @@
-#deploy.yml file
-
-name: Zero Downtime Django Deploy (ASG)
+name: Zero Downtime Django Docker Deploy (ASG)
 
 on:
   push:
@@ -12,28 +10,52 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # 1️⃣ Checkout the repository
     - name: Checkout code
       uses: actions/checkout@v4
 
+    # 2️⃣ Setup SSH securely
     - name: Setup SSH
+      shell: bash
       run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.AMI_BUILDER_IP }} >> ~/.ssh/known_hosts
+        set -e
+        mkdir -p "$HOME/.ssh"
+        echo "$EC2_SSH_KEY" | tr -d '\r' > "$HOME/.ssh/id_rsa"
+        chmod 600 "$HOME/.ssh/id_rsa"
+        ssh-keyscan -H "$AMI_BUILDER_IP" >> "$HOME/.ssh/known_hosts"
+      env:
+        EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        AMI_BUILDER_IP: ${{ secrets.AMI_BUILDER_IP }}
 
-    - name: Build AMI
+    # 3️⃣ Optional: Test SSH connection
+    - name: Test SSH connection
+      run: ssh -o StrictHostKeyChecking=no ubuntu@$AMI_BUILDER_IP "whoami"
+      env:
+        AMI_BUILDER_IP: ${{ secrets.AMI_BUILDER_IP }}
+
+    # 4️⃣ Deploy Docker containers on EC2
+    - name: Deploy Docker Compose on EC2
+      shell: bash
       run: |
-        ssh ubuntu@${{ secrets.AMI_BUILDER_IP }} << EOF
+        ssh ubuntu@$AMI_BUILDER_IP << 'EOF'
         set -e
 
+        # Navigate to your project directory
         cd /home/ubuntu/mydjangoproject/Blog_Project
+
+        # Pull latest code
         git fetch origin
         git reset --hard origin/main
 
+        # Stop existing containers gracefully
         docker-compose down
+
+        # Build and start new containers
         docker-compose up -d --build
 
+        # Wait a few seconds for containers to start
         sleep 10
-        curl http://localhost/health/
+
+        # Check health endpoint
+        curl -f http://localhost/health/ || exit 1
         EOF
