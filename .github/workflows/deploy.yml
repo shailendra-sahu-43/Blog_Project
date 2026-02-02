@@ -1,4 +1,4 @@
-name: Zero Downtime Django Deploy (ASG)
+name: Zero Downtime Django Deploy (ASG + Docker)
 
 on:
   push:
@@ -14,26 +14,22 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Setup SSH
+      shell: bash
       run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.AMI_BUILDER_IP }} >> ~/.ssh/known_hosts
+        set -e
+        mkdir -p "$HOME/.ssh"
+        echo "${{ secrets.EC2_SSH_KEY }}" > "$HOME/.ssh/id_rsa"
+        chmod 600 "$HOME/.ssh/id_rsa"
+        ssh-keyscan -H "${{ secrets.AMI_BUILDER_IP }}" >> "$HOME/.ssh/known_hosts"
 
-    - name: Build AMI
+    - name: Test SSH Connection
+      run: |
+        ssh ubuntu@${{ secrets.AMI_BUILDER_IP }} "echo SSH OK"
+
+    - name: Deploy Docker App
       run: |
         ssh ubuntu@${{ secrets.AMI_BUILDER_IP }} << EOF
         set -e
-
         cd /home/ubuntu/mydjangoproject/Blog_Project
-        git fetch origin
-        git reset --hard origin/main
-
-        source /home/ubuntu/mydjangoproject/venv/bin/activate
-        pip install -r requirements.txt
-        python manage.py migrate --noinput
-        python manage.py collectstatic --noinput
-        sudo systemctl restart gunicorn
-
-        curl http://localhost/health/
+        docker-compose up -d --build
         EOF
