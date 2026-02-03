@@ -1,4 +1,4 @@
-name: Zero Downtime Django Deploy (ASG)
+name: Zero Downtime Django Docker Deploy (ASG)
 
 on:
   push:
@@ -16,29 +16,33 @@ jobs:
     - name: Setup SSH
       run: |
         mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_SSH_KEY_BASE64 }}" | base64 -d > ~/.ssh/id_ed25519
+        # Decode single-line base64 SSH key
+        echo "${{ secrets.EC2_SSH_KEY_BASE64 }}" | base64 --decode > ~/.ssh/id_ed25519
         chmod 600 ~/.ssh/id_ed25519
+        # Add server to known_hosts to avoid prompt
         ssh-keyscan -H ${{ secrets.AMI_BUILDER_IP }} >> ~/.ssh/known_hosts
+        # Test SSH connection
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} "echo SSH_OK"
 
-    - name: Build and Deploy Docker
+    - name: Deploy Docker containers
       run: |
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} << 'EOF'
         set -e
 
+        # Navigate to project
         cd /home/ubuntu/mydjangoproject/Blog_Project
 
         # Pull latest changes
         git fetch origin
         git reset --hard origin/main
 
-        # Stop old containers
+        # Stop existing containers gracefully
         docker-compose down
 
         # Build and start new containers
         docker-compose up -d --build
 
-        # Wait a few seconds for containers to be ready
+        # Wait a bit for containers to start
         sleep 10
 
         # Health check
