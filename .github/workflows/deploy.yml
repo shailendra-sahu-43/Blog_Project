@@ -18,30 +18,25 @@ jobs:
         mkdir -p ~/.ssh
         printf '%s' "${{ secrets.EC2_SSH_KEY_BASE64 }}" | base64 --decode > ~/.ssh/id_ed25519
         chmod 600 ~/.ssh/id_ed25519
-        ssh-keyscan -H ${{ secrets.AMI_BUILDER_IP }} >> ~/.ssh/known_hosts
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} "echo SSH_OK"
+        ssh-keyscan -H ${{ secrets.AMI_BUILDER_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
+        ssh -vvv -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} "echo SSH_OK"
 
     - name: Deploy Docker containers
       run: |
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} << 'EOF'
         set -e
 
-        # Navigate to project
         cd /home/ubuntu/mydjangoproject/Blog_Project
 
-        # Pull latest changes
         git fetch origin
         git reset --hard origin/main
 
-        # Stop existing containers gracefully
-        docker-compose down
+        docker info >/dev/null
+        docker-compose version
 
-        # Build and start new containers
+        docker-compose pull
         docker-compose up -d --build
 
-        # Wait a bit for containers to start
         sleep 10
-
-        # Health check
-        curl http://localhost/health/
+        curl -f http://localhost/health/
         EOF
