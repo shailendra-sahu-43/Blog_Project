@@ -10,32 +10,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Setup SSH (ED25519 + Base64)
-        shell: bash
-        run: |
-          set -e
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY_BASE64 }}" | base64 -d > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.AMI_BUILDER_IP }} "echo SSH_OK"
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_KEY_BASE64 }}" | base64 -d > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        ssh-keyscan -H ${{ secrets.AMI_BUILDER_IP }} >> ~/.ssh/known_hosts
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} "echo SSH_OK"
 
-      - name: Deploy with Docker
-        shell: bash
-        run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.AMI_BUILDER_IP }} << 'EOF'
-          set -e
+    - name: Build and Deploy Docker
+      run: |
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} << 'EOF'
+        set -e
 
-          cd /home/ubuntu/mydjangoproject/Blog_Project
+        cd /home/ubuntu/mydjangoproject/Blog_Project
 
-          git fetch origin
-          git reset --hard origin/main
+        # Pull latest changes
+        git fetch origin
+        git reset --hard origin/main
 
-          docker-compose pull
-          docker-compose up -d --build
+        # Stop old containers
+        docker-compose down
 
-          sleep 10
-          curl -f http://localhost/health/
-          EOF
+        # Build and start new containers
+        docker-compose up -d --build
+
+        # Wait a few seconds for containers to be ready
+        sleep 10
+
+        # Health check
+        curl http://localhost/health/
+        EOF
