@@ -16,9 +16,15 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
+
+          # Write SSH key
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
+
+          # Add host to known_hosts
           ssh-keyscan -H ${{ secrets.AMI_BUILDER_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          # Test SSH
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} "echo SSH_OK"
 
       - name: Deploy Docker containers
@@ -26,12 +32,20 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} << 'EOF'
           set -e
 
+          echo "📁 Moving to project directory"
           cd /home/ubuntu/mydjangoproject/Blog_Project
 
+          echo "📥 Pulling latest code"
           git fetch origin
           git reset --hard origin/main
 
-          docker compose pull
+          echo "🐳 Docker status check"
+          docker info > /dev/null
+
+          echo "📦 Pulling images (non-fatal)"
+          docker compose pull || true
+
+          echo "🚀 Building & starting containers"
           docker compose up -d --build
 
           echo "⏳ Waiting for app to be ready..."
