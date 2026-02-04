@@ -10,33 +10,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup SSH
-      run: |
-        mkdir -p ~/.ssh
-        printf '%s' "${{ secrets.EC2_SSH_KEY_BASE64 }}" | base64 --decode > ~/.ssh/id_ed25519
-        chmod 600 ~/.ssh/id_ed25519
-        ssh-keyscan -H ${{ secrets.AMI_BUILDER_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
-        ssh -vvv -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} "echo SSH_OK"
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
 
-    - name: Deploy Docker containers
-      run: |
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} << 'EOF'
-        set -e
+          # 🔑 Write PEM key directly (NO base64)
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
 
-        cd /home/ubuntu/mydjangoproject/Blog_Project
+          # Add host to known_hosts (safe)
+          ssh-keyscan -H ${{ secrets.AMI_BUILDER_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
-        git fetch origin
-        git reset --hard origin/main
+          # SSH test
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} "echo SSH_OK"
 
-        docker info >/dev/null
-        docker-compose version
+      - name: Deploy Docker containers
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} << 'EOF'
+          set -e
 
-        docker-compose pull
-        docker-compose up -d --build
+          cd /home/ubuntu/mydjangoproject/Blog_Project
 
-        sleep 10
-        curl -f http://localhost/health/
-        EOF
+          git fetch origin
+          git reset --hard origin/main
+
+          docker info >/dev/null
+          docker-compose version
+
+          docker-compose pull
+          docker-compose up -d --build
+
+          sleep 10
+          curl -f http://localhost/health/
+          EOF
