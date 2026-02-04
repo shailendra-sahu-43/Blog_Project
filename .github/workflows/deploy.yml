@@ -52,9 +52,9 @@ jobs:
           docker compose up -d --build
 
           echo "⏳ Waiting for Django app to be healthy..."
-          # Wait for app to be ready inside the web container
+          WEB_CONTAINER=$(docker compose ps -q django_web)
           for i in {1..15}; do
-            if docker exec web curl -sf http://localhost:8000/health/ > /dev/null; then
+            if docker exec $WEB_CONTAINER curl -sf http://localhost:8000/health/ > /dev/null; then
               echo "✅ App is healthy"
               exit 0
             fi
@@ -64,6 +64,6 @@ jobs:
 
           echo "❌ App failed health check!"
           docker compose ps
-          docker compose logs web --tail=50
+          docker compose logs django_web --tail=50
           exit 1
           EOF
