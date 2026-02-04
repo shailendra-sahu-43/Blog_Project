@@ -10,11 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Setup SSH
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -23,16 +21,15 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-          # Add EC2 host to known_hosts
+          # Add host to known_hosts
           ssh-keyscan -H ${{ secrets.AMI_BUILDER_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
-          # Test SSH connectivity
+          # Test SSH
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} "echo SSH_OK"
 
-      # Step 3: Deploy Docker containers
       - name: Deploy Docker containers
         run: |
-          ssh -t -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} << EOF
+          ssh -t -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} << 'EOF'
           set -e
 
           echo "📁 Moving to project directory"
@@ -52,9 +49,8 @@ jobs:
           docker compose up -d --build
 
           echo "⏳ Waiting for Django app to be healthy..."
-          WEB_CONTAINER=$(docker compose ps -q django_web)
           for i in {1..15}; do
-            if docker exec $WEB_CONTAINER curl -sf http://localhost:8000/health/ > /dev/null; then
+            if curl -sf http://localhost/health/ > /dev/null; then
               echo "✅ App is healthy"
               exit 0
             fi
