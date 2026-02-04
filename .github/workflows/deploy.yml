@@ -1,4 +1,4 @@
-name: Zero Downtime Django Docker Deploy (ASG)
+name: Django Docker Deploy (Zero Downtime)
 
 on:
   push:
@@ -10,56 +10,58 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-
-          # Write SSH key
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-          # Add host to known_hosts
-          ssh-keyscan -H ${{ secrets.AMI_BUILDER_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
-
-          # Test SSH
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} "echo SSH_OK"
-
-      - name: Deploy Docker containers
+      - name: Deploy to EC2
         run: |
-          ssh -t -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} << 'EOF'
-          set -e
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.EC2_HOST }} bash << 'EOF'
+            set -e
 
-          echo "📁 Moving to project directory"
-          cd /home/ubuntu/mydjangoproject/Blog_Project
+            PROJECT_DIR="/home/ubuntu/mydjangoproject/Blog_Project"
 
-          echo "📥 Pulling latest code"
-          git fetch origin
-          git reset --hard origin/main
+            echo "📁 Moving to project directory"
+            cd $PROJECT_DIR
 
-          echo "🐳 Docker status check"
-          docker info > /dev/null
+            echo "📥 Pulling latest code"
+            git fetch origin
+            git reset --hard origin/main
 
-          echo "📦 Pulling Docker images (non-fatal)"
-          docker compose pull || true
+            echo "🐳 Docker status check"
+            docker info > /dev/null
 
-          echo "🚀 Building & starting containers"
-          docker compose up -d --build
+            echo "📦 Pulling Docker images (non-fatal)"
+            docker compose pull || true
 
-          echo "⏳ Waiting for Django app to be healthy..."
-          for i in {1..15}; do
-            if curl -sf http://localhost/health/ > /dev/null; then
-              echo "✅ App is healthy"
-              exit 0
+            echo "🚀 Building & starting containers"
+            docker compose up -d --build
+
+            echo "⏳ Waiting for Django app to be healthy..."
+            HEALTH_OK=0
+            for i in {1..15}; do
+              if curl -sf http://localhost/health/ > /dev/null; then
+                echo "✅ App is healthy"
+                HEALTH_OK=1
+                break
+              fi
+              echo "⏱️ Retry $i..."
+              sleep 5
+            done
+
+            if [ $HEALTH_OK -ne 1 ]; then
+              echo "❌ App failed health check!"
+              docker compose ps
+              docker compose logs django_web --tail=50
+              exit 1
             fi
-            echo "⏱️ retry $i..."
-            sleep 5
-          done
 
-          echo "❌ App failed health check!"
-          docker compose ps
-          docker compose logs django_web --tail=50
-          exit 1
+            echo "🎉 Deployment successful!"
+            exit 0
           EOF
