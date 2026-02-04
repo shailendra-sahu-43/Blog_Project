@@ -10,9 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Step 2: Setup SSH
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -21,15 +23,16 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-          # Add host to known_hosts
+          # Add EC2 host to known_hosts
           ssh-keyscan -H ${{ secrets.AMI_BUILDER_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
-          # Test SSH
+          # Test SSH connectivity
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} "echo SSH_OK"
 
+      # Step 3: Deploy Docker containers
       - name: Deploy Docker containers
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} << 'EOF'
+          ssh -t -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.AMI_BUILDER_IP }} << EOF
           set -e
 
           echo "📁 Moving to project directory"
@@ -42,16 +45,16 @@ jobs:
           echo "🐳 Docker status check"
           docker info > /dev/null
 
-          echo "📦 Pulling images (non-fatal)"
+          echo "📦 Pulling Docker images (non-fatal)"
           docker compose pull || true
 
           echo "🚀 Building & starting containers"
           docker compose up -d --build
 
-          echo "⏳ Waiting for app to be ready..."
-
+          echo "⏳ Waiting for Django app to be healthy..."
+          # Wait for app to be ready inside the web container
           for i in {1..15}; do
-            if curl -sf http://localhost/health/ > /dev/null; then
+            if docker exec web curl -sf http://localhost:8000/health/ > /dev/null; then
               echo "✅ App is healthy"
               exit 0
             fi
@@ -59,7 +62,7 @@ jobs:
             sleep 5
           done
 
-          echo "❌ App failed health check"
+          echo "❌ App failed health check!"
           docker compose ps
           docker compose logs web --tail=50
           exit 1
