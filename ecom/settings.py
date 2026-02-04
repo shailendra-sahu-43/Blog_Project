@@ -32,6 +32,7 @@ ALLOWED_HOSTS = [
     'www.trenzo.shop',
     '127.0.0.1',
     'localhost',
+    '172.31.28.145',
 ]
 
 #this is the alb settings -----------
