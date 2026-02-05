@@ -32,6 +32,7 @@ ALLOWED_HOSTS = [
     'www.trenzo.shop',
     '127.0.0.1',
     'localhost',
+    '13.50.131.47',
     '172.31.28.145',
 ]
 
