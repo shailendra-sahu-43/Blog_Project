@@ -1,67 +1,53 @@
-name: Django Docker Deploy (Zero Downtime)
+name: Django Docker Deploy via SSM (OIDC)
 
 on:
   push:
     branches:
       - main
 
+permissions:
+  id-token: write   # REQUIRED for OIDC
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::696661408242:role/GitHub-SSM-Deploy-Role
+          aws-region: eu-north-1
+
+      - name: Deploy via AWS SSM
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Deploy to EC2
-        run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 ubuntu@${{ secrets.EC2_HOST }} bash << 'EOF'
-            set -e
-
-            PROJECT_DIR="/home/ubuntu/mydjangoproject/Blog_Project"
-
-            echo "📁 Moving to project directory"
-            cd $PROJECT_DIR
-
-            echo "📥 Pulling latest code"
-            git fetch origin
-            git reset --hard origin/main
-
-            echo "🐳 Docker status check"
-            docker info > /dev/null
-
-            echo "📦 Pulling Docker images (non-fatal)"
-            docker compose pull || true
-
-            echo "🚀 Building & starting containers"
-            docker compose up -d --build
-
-            echo "⏳ Waiting for Django app to be healthy..."
-            HEALTH_OK=0
-            for i in {1..15}; do
-              if curl -sf http://localhost/health/ > /dev/null; then
-                echo "✅ App is healthy"
-                HEALTH_OK=1
-                break
-              fi
-              echo "⏱️ Retry $i..."
-              sleep 5
-            done
-
-            if [ $HEALTH_OK -ne 1 ]; then
-              echo "❌ App failed health check!"
-              docker compose ps
-              docker compose logs django_web --tail=50
-              exit 1
-            fi
-
-            echo "🎉 Deployment successful!"
-            exit 0
-          EOF
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=tag:App,Values=django-blog" \
+            --comment "Deploy Django Docker app via GitHub Actions (OIDC)" \
+            --timeout-seconds 600 \
+            --parameters 'commands=[
+              "set -e",
+              "PROJECT_DIR=/home/ubuntu/mydjangoproject/Blog_Project",
+              "echo 📁 Moving to project directory",
+              "cd $PROJECT_DIR",
+              "echo 📥 Fetching latest code",
+              "git fetch origin",
+              "git reset --hard origin/main",
+              "echo 🐳 Checking Docker",
+              "docker info > /dev/null",
+              "echo 📦 Pulling images (non-fatal)",
+              "docker compose pull || true",
+              "echo 🚀 Building & starting containers",
+              "docker compose up -d --build",
+              "echo ⏳ Waiting for health check",
+              "for i in {1..15}; do curl -sf http://localhost/health/ && echo ✅ Healthy && exit 0 || sleep 5; done",
+              "echo ❌ Health check failed",
+              "docker compose ps",
+              "docker compose logs django_web --tail=50",
+              "exit 1"
+            ]'
