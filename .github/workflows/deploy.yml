@@ -35,7 +35,6 @@ jobs:
               "set -e",
               "sudo -u ubuntu git config --global --add safe.directory /home/ubuntu/mydjangoproject/Blog_Project",
               "cd /home/ubuntu/mydjangoproject/Blog_Project",
-              "echo Current directory: $(pwd)",
               "sudo -u ubuntu git fetch origin main",
               "sudo -u ubuntu git reset --hard origin/main",
               "sudo docker compose down",
@@ -44,11 +43,15 @@ jobs:
             --query "Command.CommandId" \
             --output text)
 
-          echo "📌 SSM Command ID: $COMMAND_ID"
-          echo "⏳ Waiting for command to complete..."
+          echo "📌 Command ID: $COMMAND_ID"
 
-          aws ssm wait command-executed \
+          echo "⏳ Checking command status..."
+
+          sleep 10
+
+          aws ssm list-command-invocations \
             --command-id $COMMAND_ID \
+            --details \
             --region eu-north-1
 
-          echo "✅ Deployment completed successfully!"
+          echo "✅ Deployment command sent!"
