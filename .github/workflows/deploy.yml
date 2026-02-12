@@ -1,17 +1,17 @@
-name: Django Docker Deploy via SSM (OIDC)
+name: Deploy to EC2 via SSM
 
 on:
   push:
     branches:
       - main
 
-permissions:
-  id-token: write
-  contents: read
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout code
@@ -23,57 +23,37 @@ jobs:
           role-to-assume: arn:aws:iam::696661408242:role/GitHub-SSM-Deploy-Role
           aws-region: eu-north-1
 
-      - name: Deploy via AWS SSM
+      - name: 🚀 Send SSM Deploy Command
         run: |
           echo "🚀 Sending SSM deploy command..."
 
           COMMAND_ID=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=tag:App,Values=django-blog" \
-            --comment "Deploy Django Docker app via GitHub Actions (OIDC)" \
-            --timeout-seconds 900 \
+            --comment "Deploy Django App" \
             --parameters 'commands=[
-              "set -e",
               "cd /home/ubuntu/mydjangoproject/Blog_Project",
-
-              "echo Fetching latest code",
-              "git fetch origin",
-              "git reset --hard origin/main",
-
-              "echo Stopping old containers",
-              "docker compose down",
-
-              "echo Cleaning old images",
-              "docker system prune -af",
-
-              "echo Building fresh image (NO CACHE)",
-              "docker compose build --no-cache",
-
-              "echo Starting containers",
-              "docker compose up -d --force-recreate",
-
-              "echo Waiting for app health",
-              "for i in {1..20}; do curl -sf http://localhost/health/ && echo Healthy && exit 0 || sleep 5; done",
-
-              "echo Health check failed",
-              "docker compose ps",
-              "docker compose logs django_web --tail=50",
-              "exit 1"
+              "git pull origin main",
+              "source venv/bin/activate",
+              "pip install -r requirements.txt",
+              "python manage.py migrate --noinput",
+              "python manage.py collectstatic --noinput",
+              "sudo systemctl restart gunicorn",
+              "sudo systemctl restart nginx"
             ]' \
             --query "Command.CommandId" \
             --output text)
 
           echo "📌 SSM Command ID: $COMMAND_ID"
-
           echo "⏳ Waiting for command to complete..."
 
-          INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:App,Values=django-blog" \
-            --query "Reservations[0].Instances[0].InstanceId" \
+          INSTANCE_ID=$(aws ssm list-command-invocations \
+            --command-id $COMMAND_ID \
+            --query "CommandInvocations[0].InstanceId" \
             --output text)
 
           aws ssm wait command-executed \
             --command-id $COMMAND_ID \
             --instance-id $INSTANCE_ID
 
-          echo "✅ Deployment finished successfully!"
+          echo "✅ Deployment completed successfully!"
