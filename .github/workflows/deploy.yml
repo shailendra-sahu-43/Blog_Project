@@ -25,36 +25,55 @@ jobs:
 
       - name: Deploy via AWS SSM
         run: |
-          aws ssm send-command \
+          echo "🚀 Sending SSM deploy command..."
+
+          COMMAND_ID=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=tag:App,Values=django-blog" \
             --comment "Deploy Django Docker app via GitHub Actions (OIDC)" \
-            --timeout-seconds 600 \
+            --timeout-seconds 900 \
             --parameters 'commands=[
               "set -e",
               "cd /home/ubuntu/mydjangoproject/Blog_Project",
 
-              "echo 📥 Fetching latest code",
+              "echo Fetching latest code",
               "git fetch origin",
               "git reset --hard origin/main",
 
-              "echo 🛑 Stopping old containers",
+              "echo Stopping old containers",
               "docker compose down",
 
-              "echo 🧹 Cleaning old images",
+              "echo Cleaning old images",
               "docker system prune -af",
 
-              "echo 🐳 Building fresh image (NO CACHE)",
+              "echo Building fresh image (NO CACHE)",
               "docker compose build --no-cache",
 
-              "echo 🚀 Starting containers",
-              "docker compose up -d",
+              "echo Starting containers",
+              "docker compose up -d --force-recreate",
 
-              "echo ⏳ Waiting for app health",
-              "for i in {1..15}; do curl -sf http://localhost/health/ && echo ✅ Healthy && exit 0 || sleep 5; done",
+              "echo Waiting for app health",
+              "for i in {1..20}; do curl -sf http://localhost/health/ && echo Healthy && exit 0 || sleep 5; done",
 
-              "echo ❌ Health check failed",
+              "echo Health check failed",
               "docker compose ps",
               "docker compose logs django_web --tail=50",
               "exit 1"
-            ]'
+            ]' \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "📌 SSM Command ID: $COMMAND_ID"
+
+          echo "⏳ Waiting for command to complete..."
+
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:App,Values=django-blog" \
+            --query "Reservations[0].Instances[0].InstanceId" \
+            --output text)
+
+          aws ssm wait command-executed \
+            --command-id $COMMAND_ID \
+            --instance-id $INSTANCE_ID
+
+          echo "✅ Deployment finished successfully!"
