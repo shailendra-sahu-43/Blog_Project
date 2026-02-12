@@ -1,4 +1,4 @@
-name: Deploy to EC2 via SSM
+name: Deploy to EC2 via SSM (Docker)
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials (OIDC)
@@ -23,23 +23,21 @@ jobs:
           role-to-assume: arn:aws:iam::696661408242:role/GitHub-SSM-Deploy-Role
           aws-region: eu-north-1
 
-      - name: 🚀 Send SSM Deploy Command
+      - name: 🚀 Deploy via SSM
         run: |
           echo "🚀 Sending SSM deploy command..."
 
           COMMAND_ID=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=tag:App,Values=django-blog" \
-            --comment "Deploy Django App" \
+            --comment "Deploy Docker Django App" \
             --parameters 'commands=[
+              "set -e",
               "cd /home/ubuntu/mydjangoproject/Blog_Project",
-              "git pull origin main",
-              "source venv/bin/activate",
-              "pip install -r requirements.txt",
-              "python manage.py migrate --noinput",
-              "python manage.py collectstatic --noinput",
-              "sudo systemctl restart gunicorn",
-              "sudo systemctl restart nginx"
+              "echo Current directory: $(pwd)",
+              "sudo git pull origin main",
+              "sudo docker compose down",
+              "sudo docker compose up -d --build"
             ]' \
             --query "Command.CommandId" \
             --output text)
